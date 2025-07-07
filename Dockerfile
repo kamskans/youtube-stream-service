@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 # Avoid prompts from apt
 ENV DEBIAN_FRONTEND=noninteractive
+ENV FORCE_REBUILD=1
 
 # Install system dependencies in smaller chunks
 RUN apt-get update && apt-get install -y \

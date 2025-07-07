@@ -64,13 +64,14 @@ class BrowserService {
   }
 
   async launch() {
-    // Ensure X server and audio are running
+    // Start X server for headless browser rendering
     await this.startXServer();
+    // Start audio system
     await this.startAudioSystem();
     
     console.log('Launching browser...');
     this.browser = await puppeteer.launch({
-      headless: false, // Headful mode for audio support
+      headless: true, // Headless mode for lower resource usage
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
       args: [
         '--no-sandbox',
@@ -79,14 +80,17 @@ class BrowserService {
         '--disable-gpu',
         '--no-first-run',
         '--no-zygote',
-        '--display=:99', // Use virtual display
+        '--display=:99', // Still use virtual display for X11 capture
         '--autoplay-policy=no-user-gesture-required',
         '--disable-features=IsolateOrigins,site-per-process',
         '--use-fake-ui-for-media-stream', // Auto-accept media permissions
         '--use-fake-device-for-media-stream', // Use fake audio/video devices
         '--allow-running-insecure-content',
         '--disable-web-security',
-        '--disable-features=VizDisplayCompositor'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
       ],
       defaultViewport: {
         width: 1280,

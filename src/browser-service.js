@@ -9,6 +9,7 @@ class BrowserService {
   async launch() {
     this.browser = await puppeteer.launch({
       headless: false, // Headful mode for audio support
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome',
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

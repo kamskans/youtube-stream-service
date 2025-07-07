@@ -30,6 +30,10 @@ RUN npm install --omit=dev
 # Copy app source
 COPY . .
 
+# Set environment variables for Chrome
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+ENV DISPLAY=:99
+
 # Create start script
 RUN echo '#!/bin/bash\n\
 Xvfb :99 -screen 0 1920x1080x24 &\n\

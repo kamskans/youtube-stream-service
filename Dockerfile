@@ -4,7 +4,7 @@ FROM ghcr.io/puppeteer/puppeteer:21.6.1
 # Switch to root to install additional packages
 USER root
 
-# Install FFmpeg and audio tools
+# Install FFmpeg and audio tools (skip Chrome since it's already installed)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     pulseaudio \

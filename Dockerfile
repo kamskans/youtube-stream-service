@@ -4,6 +4,11 @@ FROM ghcr.io/puppeteer/puppeteer:21.6.1
 # Switch to root to install additional packages
 USER root
 
+# Clean up existing Chrome repositories and GPG keys to avoid conflicts
+RUN rm -f /etc/apt/sources.list.d/google*.list && \
+    rm -f /etc/apt/trusted.gpg.d/google*.gpg && \
+    apt-get update
+
 # Install FFmpeg and audio tools (skip Chrome since it's already installed)
 RUN apt-get update && apt-get install -y \
     ffmpeg \

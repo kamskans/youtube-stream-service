@@ -18,7 +18,7 @@ class StreamService {
       '-f', 'pulse',
       '-ac', '2',
       '-thread_queue_size', '512',
-      '-i', 'default',
+      '-i', 'v1.monitor',
       '-c:v', 'libx264',
       '-preset', 'veryfast',
       '-maxrate', '3000k',
@@ -29,6 +29,10 @@ class StreamService {
       '-b:a', '128k',
       '-ar', '44100',
       '-f', 'flv',
+      '-reconnect', '1',
+      '-reconnect_at_eof', '1',
+      '-reconnect_streamed', '1',
+      `-y`,
       `${rtmpUrl}/${streamKey}`
     ];
 

@@ -124,9 +124,57 @@ class BrowserService {
       throw new Error('Browser not launched');
     }
     
+    console.log(`Navigating to: ${url}`);
     await this.page.goto(url, {
       waitUntil: 'networkidle2',
       timeout: 30000
+    });
+    
+    // Take a screenshot to verify page loaded
+    try {
+      await this.page.screenshot({ path: '/tmp/page-screenshot.png' });
+      console.log('Screenshot saved to /tmp/page-screenshot.png');
+    } catch (err) {
+      console.error('Screenshot failed:', err);
+    }
+    
+    // Check if audio/video elements are present
+    const mediaInfo = await this.page.evaluate(() => {
+      const videos = document.querySelectorAll('video');
+      const audios = document.querySelectorAll('audio');
+      const title = document.title;
+      
+      return {
+        title,
+        videoCount: videos.length,
+        audioCount: audios.length,
+        videos: Array.from(videos).map(v => ({
+          src: v.src,
+          muted: v.muted,
+          paused: v.paused,
+          duration: v.duration
+        })),
+        audios: Array.from(audios).map(a => ({
+          src: a.src,
+          muted: a.muted,
+          paused: a.paused,
+          duration: a.duration
+        }))
+      };
+    });
+    
+    console.log('Page media info:', JSON.stringify(mediaInfo, null, 2));
+    
+    // Try to start any paused media
+    await this.page.evaluate(() => {
+      const videos = document.querySelectorAll('video');
+      const audios = document.querySelectorAll('audio');
+      
+      [...videos, ...audios].forEach(media => {
+        if (media.paused) {
+          media.play().catch(e => console.log('Media play failed:', e));
+        }
+      });
     });
   }
 

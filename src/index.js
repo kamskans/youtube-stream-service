@@ -155,6 +155,55 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/api/debug/screenshot', (req, res) => {
+  const fs = require('fs');
+  const path = '/tmp/page-screenshot.png';
+  
+  if (fs.existsSync(path)) {
+    res.sendFile(path);
+  } else {
+    res.status(404).json({ error: 'Screenshot not found' });
+  }
+});
+
+app.get('/api/debug/info', async (req, res) => {
+  try {
+    if (!browserService.isActive()) {
+      return res.json({ 
+        error: 'Browser not active',
+        browserActive: false 
+      });
+    }
+
+    // Get page info if browser is running
+    const pageInfo = await browserService.page.evaluate(() => {
+      return {
+        url: window.location.href,
+        title: document.title,
+        readyState: document.readyState,
+        videoElements: document.querySelectorAll('video').length,
+        audioElements: document.querySelectorAll('audio').length,
+        bodyText: document.body ? document.body.innerText.substring(0, 500) : 'No body'
+      };
+    });
+
+    res.json({
+      browserActive: true,
+      currentStreamId,
+      activeStreams: streamService.getActiveStreams(),
+      pageInfo
+    });
+
+  } catch (error) {
+    res.json({
+      error: error.message,
+      browserActive: browserService.isActive(),
+      currentStreamId,
+      activeStreams: streamService.getActiveStreams()
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

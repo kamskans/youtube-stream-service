@@ -1,0 +1,6 @@
+# nixpacks.toml
+[phases.setup]
+nixPkgs = ["nodejs", "google-chrome", "xvfb-run", "ffmpeg", "pulseaudio"]
+
+[start]
+cmd = "xvfb-run -a --server-args='-screen 0 1920x1080x24' node src/index.js"

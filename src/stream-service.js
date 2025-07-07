@@ -10,33 +10,34 @@ class StreamService {
     const streamId = uuidv4();
     
     const ffmpegArgs = [
-      // Video input from X11
+      // Video input from X11 - optimized for low resources
       '-f', 'x11grab',
-      '-r', '30',
-      '-s', '1920x1080',
-      '-thread_queue_size', '1024',
+      '-r', '15', // Reduced from 30fps to 15fps
+      '-s', '1280x720', // Reduced from 1920x1080 to 720p
+      '-thread_queue_size', '256', // Reduced buffer
       '-i', ':99',
       
-      // Audio input from PipeWire/PulseAudio
+      // Audio input - optimized
       '-f', 'pulse',
       '-ac', '2',
       '-ar', '44100',
-      '-thread_queue_size', '1024',
+      '-thread_queue_size', '256',
       '-i', 'virtual_output.monitor',
       
-      // Video encoding
+      // Video encoding - optimized for low CPU
       '-c:v', 'libx264',
-      '-preset', 'veryfast',
+      '-preset', 'ultrafast', // Fastest preset
       '-tune', 'zerolatency',
-      '-maxrate', '3000k',
-      '-bufsize', '6000k',
+      '-crf', '28', // Lower quality for less CPU
+      '-maxrate', '1500k', // Reduced bitrate
+      '-bufsize', '3000k', // Reduced buffer
       '-pix_fmt', 'yuv420p',
-      '-g', '60',
-      '-keyint_min', '30',
+      '-g', '30', // Reduced keyframe interval
+      '-threads', '2', // Limit CPU threads
       
-      // Audio encoding
+      // Audio encoding - optimized
       '-c:a', 'aac',
-      '-b:a', '128k',
+      '-b:a', '64k', // Reduced audio bitrate
       '-ar', '44100',
       '-ac', '2',
       

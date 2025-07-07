@@ -16,7 +16,7 @@ class BrowserService {
       
       setTimeout(() => {
         console.log('Starting Xvfb server...');
-        this.xvfbProcess = spawn('Xvfb', [':99', '-screen', '0', '1920x1080x24'], {
+        this.xvfbProcess = spawn('Xvfb', [':99', '-screen', '0', '1280x720x24'], {
           stdio: 'pipe'
         });
         
@@ -89,8 +89,8 @@ class BrowserService {
         '--disable-features=VizDisplayCompositor'
       ],
       defaultViewport: {
-        width: 1920,
-        height: 1080
+        width: 1280,
+        height: 720
       }
     });
 

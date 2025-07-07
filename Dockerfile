@@ -30,8 +30,9 @@ RUN npm install --omit=dev
 # Copy app source
 COPY . .
 
-# Set environment variables for Chrome
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+# Find Chrome installation and set path
+RUN which google-chrome-stable || which google-chrome || which chromium || echo "Chrome not found"
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 ENV DISPLAY=:99
 
 # Create start script

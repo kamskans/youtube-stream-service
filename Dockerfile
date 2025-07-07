@@ -1,5 +1,5 @@
 # Use a pre-built image with Chrome and dependencies
-FROM ghcr.io/puppeteer/puppeteer:21.6.1
+FROM ghcr.io/puppeteer/puppeteer:22.8.2
 
 # Switch to root to install additional packages
 USER root

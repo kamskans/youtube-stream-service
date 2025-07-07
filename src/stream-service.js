@@ -1,4 +1,4 @@
-const ffmpeg = require('fluent-ffmpeg');
+const { spawn } = require('child_process');
 const { v4: uuidv4 } = require('uuid');
 
 class StreamService {
@@ -9,56 +9,58 @@ class StreamService {
   startStream(streamKey, rtmpUrl = 'rtmp://a.rtmp.youtube.com/live2') {
     const streamId = uuidv4();
     
-    const command = ffmpeg()
-      .input(':99')
-      .inputOptions([
-        '-f x11grab',
-        '-r 30',
-        '-s 1920x1080',
-        '-thread_queue_size 512'
-      ])
-      .input('pulse')
-      .inputOptions([
-        '-f pulse',
-        '-ac 2',
-        '-thread_queue_size 512'
-      ])
-      .outputOptions([
-        '-c:v libx264',
-        '-preset veryfast',
-        '-maxrate 3000k',
-        '-bufsize 6000k',
-        '-pix_fmt yuv420p',
-        '-g 60',
-        '-c:a aac',
-        '-b:a 128k',
-        '-ar 44100',
-        '-f flv'
-      ])
-      .output(`${rtmpUrl}/${streamKey}`)
-      .on('start', (commandLine) => {
-        console.log('Spawned FFmpeg with command: ' + commandLine);
-      })
-      .on('error', (err, stdout, stderr) => {
-        console.error('FFmpeg error:', err.message);
-        console.error('FFmpeg stderr:', stderr);
-        this.activeStreams.delete(streamId);
-      })
-      .on('end', () => {
-        console.log('Stream ended');
-        this.activeStreams.delete(streamId);
-      });
+    const ffmpegArgs = [
+      '-f', 'x11grab',
+      '-r', '30',
+      '-s', '1920x1080',
+      '-thread_queue_size', '512',
+      '-i', ':99',
+      '-f', 'pulse',
+      '-ac', '2',
+      '-thread_queue_size', '512',
+      '-i', 'default',
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-maxrate', '3000k',
+      '-bufsize', '6000k',
+      '-pix_fmt', 'yuv420p',
+      '-g', '60',
+      '-c:a', 'aac',
+      '-b:a', '128k',
+      '-ar', '44100',
+      '-f', 'flv',
+      `${rtmpUrl}/${streamKey}`
+    ];
 
-    command.run();
-    this.activeStreams.set(streamId, command);
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
+    
+    ffmpegProcess.stdout.on('data', (data) => {
+      console.log('FFmpeg stdout:', data.toString());
+    });
+
+    ffmpegProcess.stderr.on('data', (data) => {
+      console.log('FFmpeg stderr:', data.toString());
+    });
+
+    ffmpegProcess.on('close', (code) => {
+      console.log(`FFmpeg process exited with code ${code}`);
+      this.activeStreams.delete(streamId);
+    });
+
+    ffmpegProcess.on('error', (err) => {
+      console.error('FFmpeg error:', err);
+      this.activeStreams.delete(streamId);
+    });
+
+    this.activeStreams.set(streamId, ffmpegProcess);
     
     return streamId;
   }
 
   stopStream(streamId) {
-    const command = this.activeStreams.get(streamId);
-    if (command) {
-      command.kill('SIGTERM');
+    const process = this.activeStreams.get(streamId);
+    if (process) {
+      process.kill('SIGTERM');
       this.activeStreams.delete(streamId);
       return true;
     }
@@ -66,8 +68,8 @@ class StreamService {
   }
 
   stopAllStreams() {
-    for (const [streamId, command] of this.activeStreams) {
-      command.kill('SIGTERM');
+    for (const [streamId, process] of this.activeStreams) {
+      process.kill('SIGTERM');
     }
     this.activeStreams.clear();
   }

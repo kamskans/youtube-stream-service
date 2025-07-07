@@ -93,6 +93,52 @@ app.post('/api/stream/stop', async (req, res) => {
   }
 });
 
+app.post('/api/stream/restart', async (req, res) => {
+  try {
+    const { url, streamKey, rtmpUrl } = req.body;
+
+    if (!url || !streamKey) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters: url and streamKey' 
+      });
+    }
+
+    // Stop current stream if running
+    if (currentStreamId) {
+      streamService.stopStream(currentStreamId);
+      currentStreamId = null;
+    }
+
+    // Force restart browser and services
+    await browserService.forceRestart();
+
+    // Navigate to the URL
+    await browserService.navigateTo(url);
+
+    // Wait a bit for page to fully load
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Start streaming
+    currentStreamId = streamService.startStream(
+      streamKey, 
+      rtmpUrl || 'rtmp://a.rtmp.youtube.com/live2'
+    );
+
+    res.json({ 
+      success: true, 
+      streamId: currentStreamId,
+      message: 'Stream restarted successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error restarting stream:', error);
+    res.status(500).json({ 
+      error: 'Failed to restart stream', 
+      details: error.message 
+    });
+  }
+});
+
 app.get('/api/stream/status', (req, res) => {
   res.json({
     active: currentStreamId !== null,

@@ -52,23 +52,5 @@ RUN useradd -m -s /bin/bash appuser && \
 ENV DISPLAY=:99
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-# Start Xvfb\n\
-Xvfb :99 -screen 0 1920x1080x24 &\n\
-export DISPLAY=:99\n\
-\n\
-# Start PulseAudio\n\
-pulseaudio --start --exit-idle-time=-1\n\
-sleep 2\n\
-\n\
-# Create virtual audio sink\n\
-pactl load-module module-null-sink sink_name=virtual_output sink_properties=device.description=Virtual_Output\n\
-pactl set-default-sink virtual_output\n\
-pactl set-default-source virtual_output.monitor\n\
-\n\
-# Start the application\n\
-exec node src/index.js' > /app/start.sh && chmod +x /app/start.sh
-
 EXPOSE 3000
-CMD ["/app/start.sh"]
+CMD ["node", "src/index.js"]

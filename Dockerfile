@@ -1,53 +1,90 @@
-# Use a pre-built image with Chrome and dependencies
-FROM ghcr.io/puppeteer/puppeteer:22.8.2
+FROM ubuntu:22.04
 
-# Switch to root to install additional packages
-USER root
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Clean up existing Chrome repositories and GPG keys to avoid conflicts
-RUN rm -f /etc/apt/sources.list.d/google*.list && \
-    rm -f /etc/apt/trusted.gpg.d/google*.gpg && \
-    apt-get update
-
-# Install FFmpeg and audio tools (skip Chrome since it's already installed)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    pulseaudio \
-    pulseaudio-utils \
-    xvfb \
-    --no-install-recommends \
+    curl \
+    gnupg \
+    wget \
+    software-properties-common \
+    apt-transport-https \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Add NodeSource repository
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+
+# Install Node.js, Chrome, and other dependencies
+RUN apt-get update && apt-get install -y \
+    nodejs \
+    google-chrome-stable \
+    xvfb \
+    ffmpeg \
+    pipewire \
+    pipewire-pulse \
+    pipewire-audio-client-libraries \
+    wireplumber \
+    pulseaudio-utils \
+    alsa-utils \
+    dbus \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Chrome
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/google-chrome.gpg && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install app dependencies
+# Install Node dependencies
 RUN npm install --omit=dev
 
 # Copy app source
 COPY . .
 
-# Find Chrome installation and set path
-RUN which google-chrome-stable || which google-chrome || which chromium || echo "Chrome not found"
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+# Create user for running applications
+RUN useradd -m -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+
+# Set environment variables
 ENV DISPLAY=:99
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# Create start script
+# Create startup script
 RUN echo '#!/bin/bash\n\
-Xvfb :99 -screen 0 1920x1080x24 &\n\
+# Start D-Bus\n\
+dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address\n\
+\n\
+# Start Xvfb\n\
+Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +extension RANDR +extension RENDER &\n\
 export DISPLAY=:99\n\
-pulseaudio --start --exit-idle-time=-1 &\n\
+\n\
+# Start PipeWire\n\
+pipewire &\n\
 sleep 2\n\
-pacmd load-module module-virtual-sink sink_name=v1\n\
-pacmd set-default-sink v1\n\
-pacmd set-default-source v1.monitor\n\
-exec node src/index.js' > /usr/src/app/start.sh && chmod +x /usr/src/app/start.sh
+pipewire-pulse &\n\
+sleep 2\n\
+wireplumber &\n\
+sleep 3\n\
+\n\
+# Create virtual audio sink\n\
+pactl load-module module-null-sink sink_name=virtual_output sink_properties=device.description=Virtual_Output\n\
+pactl set-default-sink virtual_output\n\
+pactl set-default-source virtual_output.monitor\n\
+\n\
+# Start the application\n\
+cd /app\n\
+exec node src/index.js' > /app/start.sh && chmod +x /app/start.sh
 
-# Switch back to non-root user
-USER pptruser
+# Switch to app user
+USER appuser
 
 EXPOSE 3000
-CMD ["/usr/src/app/start.sh"]
+CMD ["/app/start.sh"]

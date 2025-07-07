@@ -10,58 +10,33 @@ class StreamService {
     const streamId = uuidv4();
     
     const ffmpegArgs = [
-      // Video input from X11
       '-f', 'x11grab',
       '-r', '30',
       '-s', '1920x1080',
-      '-thread_queue_size', '1024',
+      '-thread_queue_size', '512',
       '-i', ':99',
-      
-      // Audio input from PipeWire/PulseAudio
       '-f', 'pulse',
       '-ac', '2',
-      '-ar', '44100',
-      '-thread_queue_size', '1024',
-      '-i', 'virtual_output.monitor',
-      
-      // Video encoding
+      '-thread_queue_size', '512',
+      '-i', 'v1.monitor',
       '-c:v', 'libx264',
       '-preset', 'veryfast',
-      '-tune', 'zerolatency',
       '-maxrate', '3000k',
       '-bufsize', '6000k',
       '-pix_fmt', 'yuv420p',
       '-g', '60',
-      '-keyint_min', '30',
-      
-      // Audio encoding
       '-c:a', 'aac',
       '-b:a', '128k',
       '-ar', '44100',
-      '-ac', '2',
-      
-      // Output format
       '-f', 'flv',
-      '-flvflags', 'no_duration_filesize',
-      
-      // Network options
       '-reconnect', '1',
       '-reconnect_at_eof', '1',
       '-reconnect_streamed', '1',
-      '-reconnect_delay_max', '5',
-      
-      // Overwrite output
-      '-y',
-      
-      // RTMP URL
+      `-y`,
       `${rtmpUrl}/${streamKey}`
     ];
 
-    console.log('Starting FFmpeg with args:', ffmpegArgs.join(' '));
-
-    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, {
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs);
     
     ffmpegProcess.stdout.on('data', (data) => {
       console.log('FFmpeg stdout:', data.toString());
